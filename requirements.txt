@@ -3,3 +3,4 @@ pandas>=2.0
 requests>=2.31
 altair>=5.0
 streamlit-autorefresh
+matplotlib
