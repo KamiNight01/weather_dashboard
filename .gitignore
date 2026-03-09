@@ -1,0 +1,13 @@
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+.streamlit/secrets.toml
+.env
+__pycache__/
+*.pyc
