@@ -163,9 +163,7 @@ def utc_window_for_local_day(local_day: Any, tz_offset_seconds: int) -> tuple[pd
     return start_utc, end_utc
 
 
-# -----------------------------
 # Main app
-# -----------------------------
 def run():
     st_autorefresh(interval=60000, key="weather_refresh")
     st.set_page_config(page_title="Weather Dashboard", page_icon="🌤️", layout="wide")
@@ -193,9 +191,7 @@ def run():
     st.title("🌤️ Weather Dashboard")
     st.caption("Search a location for weather updates.")
 
-    # -----------------------------
-    # Top search bar + auto-collapsing settings
-    # -----------------------------
+    
     top1, top2 = st.columns([3, 1], gap="medium")
     with top1:
         city = st.text_input("Location", value=st.session_state.city, placeholder="Start typing a city…")
@@ -224,7 +220,7 @@ def run():
         # Let user re-expand settings permanently if they want
         st.caption("After you click Search, this section collapses to give more space.")
 
-    # If user hasn't searched yet, still proceed with default city (no extra clicks)
+    # If user hasn't searched yet, still proceed with the default city 
     city = st.session_state.city
     units = "imperial"
 
@@ -258,15 +254,15 @@ def run():
             format_func=lambda d: pd.to_datetime(d).strftime("%a, %b %d"),
         )
     with dcol2:
-        st.write("")  # spacer
+        st.write("") 
         st.caption(f"**{name}, {country}**")
     with dcol3:
-        st.write("")  # spacer
+        st.write("")  
         st.caption(current["weather"][0]["description"].title())
 
     st.session_state.selected_date = selected_date
 
-    # Build 24h window and base-day slice (plotted on base local axis)
+    # Build 24h window and base-day slice 
     start_utc, end_utc = utc_window_for_local_day(selected_date, base_tz_offset)
 
     base_24h = df[(df["time_utc"] >= start_utc) & (df["time_utc"] < end_utc)].copy()
@@ -274,15 +270,15 @@ def run():
         st.warning("No forecast points for that day (try another date).")
         st.stop()
 
-    # “time_base” = UTC converted to base city's local time for consistent x-axis
+    # “time_base” = UTC converted to the base city's local time for a consistent x-axis
     base_24h["time_base"] = base_24h["time_utc"] + pd.to_timedelta(base_tz_offset, unit="s")
 
     unit_temp = "°F" if units == "imperial" else "°C"
     unit_wind = "mph" if units == "imperial" else "m/s"
 
 
-    # Metrics row (compact)
-    # -----------------------------
+    # Metrics row 
+
     m0, m1, m2, m3, m4 = st.columns(5, gap="medium")
     m0.metric("Current Temp", f"{current['main']['temp']:.1f} {unit_temp}")
     m1.metric("Max Temp", f"{base_24h['temp_max'].max():.1f} {unit_temp}")
@@ -372,7 +368,7 @@ def run():
             .interactive()
         )
 
-        # Precip
+        # Precipitation
         p = base_24h.copy()
         p["label"] = pd.to_datetime(p["time_base"]).dt.strftime("%I %p")
         precip_chart = (
