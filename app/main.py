@@ -46,29 +46,33 @@ def get_current(lat: float, lon: float, units: str, api_key: str) -> dict:
 
 def get_forecast(lat: float, lon: float, units: str, api_key: str) -> dict:
     url = "https://api.openweathermap.org/data/3.0/onecall"
-    return fetch_json(url, {
-        "lat": lat,
-        "lon": lon,
-        "appid": api_key,
-        "units": units,
-        "exclude": "minutely,daily,alerts"
-    })
-
+    return fetch_json(
+        url,
+        {
+            "lat": lat,
+            "lon": lon,
+            "appid": api_key,
+            "units": units,
+            "exclude": "minutely,daily,alerts",
+        },
+    )
 
 def forecast_to_df(forecast_json: dict) -> tuple[pd.DataFrame, int]:
-    """Return (df, tz_offset_seconds)."""
-    tz_offset = int((forecast_json.get("city") or {}).get("timezone", 0))  # seconds
+    """
+    One Call 3.0 returns hourly data in forecast_json["hourly"].
+    timezone_offset is in seconds.
+    """
+    tz_offset = int(forecast_json.get("timezone_offset", 0))
     rows: List[Dict[str, Any]] = []
 
-    for item in forecast_json.get("list", []):
-        main = item.get("main", {}) or {}
-        wind = item.get("wind", {}) or {}
-        rain_3h = float(((item.get("rain") or {}).get("3h", 0.0)) or 0.0)
-        snow_3h = float(((item.get("snow") or {}).get("3h", 0.0)) or 0.0)
+    for item in forecast_json.get("hourly", []):
         weather = (item.get("weather") or [{}])[0] or {}
 
-        dt_utc = pd.to_datetime(item.get("dt_txt"), utc=True)
+        dt_utc = pd.to_datetime(item["dt"], unit="s", utc=True)
         dt_local = dt_utc + pd.to_timedelta(tz_offset, unit="s")
+
+        rain_1h = float(((item.get("rain") or {}).get("1h", 0.0)) or 0.0)
+        snow_1h = float(((item.get("snow") or {}).get("1h", 0.0)) or 0.0)
 
         rows.append(
             {
@@ -76,15 +80,17 @@ def forecast_to_df(forecast_json: dict) -> tuple[pd.DataFrame, int]:
                 "time_local": dt_local,
                 "date_local": dt_local.date(),
                 "hour_local": dt_local.hour,
-                "temp": main.get("temp"),
-                "feels_like": main.get("feels_like"),
-                "temp_min": main.get("temp_min"),
-                "temp_max": main.get("temp_max"),
-                "humidity": main.get("humidity"),
-                "wind": wind.get("speed"),
-                "rain_mm": rain_3h,
-                "snow_mm": snow_3h,
-                "precip_mm": rain_3h + snow_3h,
+                "temp": item.get("temp"),
+                "feels_like": item.get("feels_like"),
+                # One Call hourly does not provide temp_min/temp_max per hour,
+                # so use temp as the closest hourly value.
+                "temp_min": item.get("temp"),
+                "temp_max": item.get("temp"),
+                "humidity": item.get("humidity"),
+                "wind": item.get("wind_speed"),
+                "rain_mm": rain_1h,
+                "snow_mm": snow_1h,
+                "precip_mm": rain_1h + snow_1h,
                 "condition": weather.get("main"),
                 "description": weather.get("description"),
                 "icon": weather.get("icon"),
@@ -95,7 +101,7 @@ def forecast_to_df(forecast_json: dict) -> tuple[pd.DataFrame, int]:
     if df.empty:
         return df, tz_offset
     return df.sort_values("time_utc"), tz_offset
-
+    
 
 def inject_css():
     st.markdown(
@@ -135,7 +141,7 @@ def style_forecast_table(df_day: pd.DataFrame, units: str):
     unit_wind = "mph" if units == "imperial" else "m/s"
 
     show = df_day.copy()
-    show["time"] = pd.to_datetime(show["time_base"]).dt.strftime("%a %I %p")
+    show["time"] = pd.to_datetime(show["time_base"]).dt.strftime("%a %I:%M %p")
     show = show[
         ["time", "temp", "feels_like", "humidity", "wind", "precip_mm", "condition", "description"]
     ].rename(
