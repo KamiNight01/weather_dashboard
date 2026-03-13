@@ -212,9 +212,9 @@ def run():
     if search_clicked:
         st.session_state.city = city.strip() if city.strip() else st.session_state.city
         st.session_state.searched = True
-        st.session_state.collapse_settings = True  # minimize after search
+        st.session_state.collapse_settings = True  
 
-    # Settings expander: collapsed after search
+  
     with st.expander("Settings", expanded=not st.session_state.collapse_settings):
         s1, s2, s3 = st.columns([1, 1, 2], gap="medium")
         with s2:
