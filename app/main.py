@@ -45,8 +45,14 @@ def get_current(lat: float, lon: float, units: str, api_key: str) -> dict:
 
 
 def get_forecast(lat: float, lon: float, units: str, api_key: str) -> dict:
-    url = "https://api.openweathermap.org/data/2.5/forecast"
-    return fetch_json(url, {"lat": lat, "lon": lon, "appid": api_key, "units": units})
+    url = "https://api.openweathermap.org/data/3.0/onecall"
+    return fetch_json(url, {
+        "lat": lat,
+        "lon": lon,
+        "appid": api_key,
+        "units": units,
+        "exclude": "minutely,daily,alerts"
+    })
 
 
 def forecast_to_df(forecast_json: dict) -> tuple[pd.DataFrame, int]:
@@ -260,7 +266,7 @@ def run():
 
     st.session_state.selected_date = selected_date
 
-    # Build 24h window and base-day slice 
+    # Build a 24h window and base-day slice 
     start_utc, end_utc = utc_window_for_local_day(selected_date, base_tz_offset)
 
     base_24h = df[(df["time_utc"] >= start_utc) & (df["time_utc"] < end_utc)].copy()
