@@ -217,8 +217,6 @@ def run():
             )
             
 
-        # Let user re-expand settings permanently if they want
-        st.caption("After you click Search, this section collapses to give more space.")
 
     # If user hasn't searched yet, still proceed with the default city 
     city = st.session_state.city
